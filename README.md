@@ -1,4 +1,4 @@
-Evostrats: a Minimal PyTorch Benchmark for Evolutionary Strategies
+Evostrats: a minimal evolution benchmark
 =======
 Sam Greydanus | 2020
 
