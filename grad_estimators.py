@@ -100,7 +100,7 @@ class Evostrat():
 
     diffs = self.beta * torch.Tensor(diffs.reshape(-1,1)).to(self.device)
     if not self.use_fitness_shaping:
-      diffs /= (self.sigma.mean()**2 * len(params)) # finite differences denominator
+      diffs /= (self.sigma.mean()**2 * self.num_params) # finite differences denominator
 
     self.prev_grad_est = grad = (diffs * epsilons).mean(0)
     return grad
