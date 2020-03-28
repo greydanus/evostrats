@@ -1,0 +1,12 @@
+# Evostrats: a Minimal PyTorch Benchmark for Evolutionary Strategies
+# Sam Greydanus
+
+.DS_Store
+*.egg-info
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+.pytest_cache
+*.tar
+*.zip
+*.pkl
+__pycache__
