@@ -12,8 +12,8 @@ from .grad_estimators import Backprop
 
 
 def get_evostrat_args(as_dict=False):
-  arg_dict = {'popsize': 4,
-              'sigma': 1e-1,
+  arg_dict = {'popsize': 5,
+              'sigma': 1e-3,
               'sigma_learn_rate': 0,
               'use_antithetic': True,
               'use_fitness_shaping': False,
