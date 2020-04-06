@@ -11,7 +11,7 @@ class Backprop():
   def __init__(self, bias=None):
     self.bias = bias
 
-  def step(self, model, fitness_fn, x):
+  def step(self, model, fitness_fn, x, is_training=True):
     fitness = fitness_fn(model)
     fitness.backward()
     grad = get_grads(model)
@@ -44,7 +44,7 @@ class Evostrat():
     self.device = device
     self.prev_grad_est = None
 
-  def step(self, model, fitness_fn, x):
+  def step(self, model, fitness_fn, x, is_training=True):
     # use evolution strategies to estimate fitness gradient
 
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
@@ -58,6 +58,8 @@ class Evostrat():
       self.update_adaptive_sigma(fitness, epsilons)
 
     grad = self.estimate_grad(fitness, epsilons, current_fitness)
+    if is_training:
+      self.prev_grad_est = grad
     return current_fitness, grad
 
   def sample(self, model, x):
@@ -104,8 +106,7 @@ class Evostrat():
     if not self.use_fitness_shaping:
       diffs /= (self.sigma.mean()**2 * self.num_params) # finite differences denominator
 
-    self.prev_grad_est = grad = (diffs * epsilons).mean(0)
-    return grad
+    return (diffs * epsilons).mean(0)
 
   def guided_es_sample(self, eps):
     # see "guided evolutionary strategies" (arxiv.org/abs/1806.10230)

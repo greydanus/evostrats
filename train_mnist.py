@@ -9,6 +9,7 @@ import torch.nn as nn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 
+from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
 from .grad_estimators import Backprop
 
@@ -36,11 +37,11 @@ def get_mnist_args(as_dict=False):
               'batch_size': 100,
               'learn_rate': 1e-1,
               'lr_anneal_coeff': 0.75,
-              'use_evolution': True,
+              'use_adam': False,
               'test_every': 100,
               'print_every': 100,
               'device': 'cuda',
-              'seed': 1,}
+              'seed': 0,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
@@ -85,6 +86,10 @@ def train_mnist(model, data, grad_estimator, args):
   criterion = nn.CrossEntropyLoss()
   model.train() ; model.to(args.device)
 
+  # set up the optimizer
+  opt_state = get_adam_state() if args.use_adam else get_sgd_state()
+  opt_fn = adam_fn if args.use_adam else sgd_fn
+
   results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step':0, \
              'angle':[], 'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
   t0 = time.time()
@@ -95,6 +100,7 @@ def train_mnist(model, data, grad_estimator, args):
       fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
       fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
       loss = -fitness
+      grad_est, opt_state = opt_fn(grad_est, opt_state)  # this lets us swap out sgd for adam
       new_params = get_params(model) + args.learn_rate * grad_est
       set_params(model, new_params)
 
@@ -109,7 +115,7 @@ def train_mnist(model, data, grad_estimator, args):
         test_loss, test_acc = evaluate_model(model, testloader, criterion)
 
         fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
-        _, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
+        _, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device), is_training=False)
         _, grad_true = Backprop().step(model, fitness_fn, inputs.to(args.device))
         angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 

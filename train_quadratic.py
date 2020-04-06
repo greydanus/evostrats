@@ -9,6 +9,7 @@ import torch.nn as nn
 
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
 from .grad_estimators import Backprop
+from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 
 def get_evostrat_args(as_dict=False):
   arg_dict = {'popsize': 20,
@@ -29,11 +30,11 @@ def get_quad_args(as_dict=False):
               'total_steps': 1000,
               'learn_rate': 2e-2,
               'lr_anneal_coeff': 1.,
-              'use_evolution': True,
+              'use_adam': False,
               'test_every': 10,
               'print_every': 100,
               'device': 'cpu',
-              'seed': 4,}
+              'seed': 0,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
@@ -61,6 +62,10 @@ def train_quadratic(model, grad_estimator, args):
   gbias = 1.05 * gbias / gbias.norm()
   fitness_fn = get_fitness_fn(A, b)
 
+  # set up the optimizer
+  opt_state = get_adam_state() if args.use_adam else get_sgd_state()
+  opt_fn = adam_fn if args.use_adam else sgd_fn
+
   results = {'train_loss':[], 'angle':[], 'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
   t0 = time.time()
   for i in range(args.total_steps):
@@ -69,13 +74,14 @@ def train_quadratic(model, grad_estimator, args):
       # print(fitness_fn(model))
       fitness, grad_est = grad_estimator.step(model, fitness_fn, A.to(args.device))
       loss = -fitness
+      grad_est, opt_state = opt_fn(grad_est, opt_state)  # this lets us swap out sgd for adam
       new_params = get_params(model) + args.learn_rate * grad_est
       set_params(model, new_params)
 
       # bookkeeping
       results['train_loss'].append(loss)
       if i % args.test_every == 0:
-        _, grad_est = grad_estimator.step(model, fitness_fn, A.to(args.device))
+        _, grad_est = grad_estimator.step(model, fitness_fn, A.to(args.device), is_training=False)
         _, grad_true = Backprop().step(model, fitness_fn, A.to(args.device))
         angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 
