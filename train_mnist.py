@@ -121,6 +121,8 @@ def train_mnist(model, data, grad_estimator, args):
         if hasattr(grad_estimator, 'sigma'):
           s_mu, s_std = grad_estimator.sigma.mean(), grad_estimator.sigma.std()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
+
+      if results['global_step'] % args.print_every == 0:
         print(('epoch {}, global_step {}, dt {:.0f}s, train {:.1e}, test {:.1e}, ' + \
               'acc {:.1f}, angle {:.1e}, rel_norm {:.1e}, s_mu {:.1e}, s_std {:.1e}')
               .format(epoch, results['global_step'], t1-t0, loss, test_loss, test_acc,

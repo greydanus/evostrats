@@ -10,35 +10,34 @@ import torch.nn as nn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
 from .grad_estimators import Backprop
 
-
 def get_evostrat_args(as_dict=False):
-  arg_dict = {'popsize': 5,
-              'sigma': 1e-3,
+  arg_dict = {'popsize': 20,
+              'sigma': 3.16e-3,
               'sigma_learn_rate': 0,
               'use_antithetic': True,
               'use_fitness_shaping': False,
               'use_safe_mutation': False,
               'sigma_learn_rate': 0,
               'alpha': 1.,                # put this between 0 and 1 to do guided ES
-              'beta': 100.,                # gradient scaling coefficient (from ES paper)
+              'beta': 2. ,                # gradient scaling coefficient (from ES paper)
               'device': 'cpu'}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 def get_quad_args(as_dict=False):
-  arg_dict = {'quad_n': 1000,
-              'quad_m': 2000,
+  arg_dict = {'quad_m': 2000,
+              'quad_n': 1000,
               'total_steps': 1000,
               'learn_rate': 2e-2,
               'lr_anneal_coeff': 1.,
               'use_evolution': True,
-              'test_every': 100,
+              'test_every': 10,
               'print_every': 100,
               'device': 'cpu',
-              'seed': 2,}
+              'seed': 4,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
-def generate_problem(n, m, seed=None):
+def generate_problem(m, n, seed=None):
   rs = np.random.RandomState(seed=seed)
   A, b = rs.randn(m, n), rs.randn(m, 1)
   grad_bias = rs.randn(n, 1)
@@ -52,7 +51,7 @@ def get_fitness_fn(A, b): # make loss look like fitness
 
 
 
-# train an mnist model + lots of custom logging utilities
+# train a model + lots of custom logging utilities
 def train_quadratic(model, grad_estimator, args):
   model.train()
 
@@ -87,6 +86,7 @@ def train_quadratic(model, grad_estimator, args):
         if hasattr(grad_estimator, 'sigma'):
           s_mu, s_std = grad_estimator.sigma.mean(), grad_estimator.sigma.std()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
+      if i % args.print_every == 0:
         print(('step {}, dt {:.0f}s, train {:.2e}, angle {:.1e}, rel_norm {:.1e}, s_mu {:.1e}, s_std {:.1e}')
               .format(i, t1-t0, loss, angle, rnorm, s_mu, s_std))
         t0 = t1
