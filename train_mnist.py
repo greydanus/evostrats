@@ -41,7 +41,7 @@ def get_mnist_args(as_dict=False):
               'test_every': 100,
               'print_every': 100,
               'device': 'cuda',
-              'seed': 1,}
+              'seed': 0,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
