@@ -8,13 +8,14 @@ from .utils import get_params, set_params, get_grads, clear_grads, jacobian_of_p
 
 
 class Backprop():
-  def __init__(self):
-    pass
+  def __init__(self, bias=None):
+    self.bias = bias
 
   def step(self, model, fitness_fn, x):
     fitness = fitness_fn(model)
     fitness.backward()
     grad = get_grads(model)
+    grad = grad - self.bias * grad.norm() if self.bias is not None else grad
     clear_grads(model)
     return fitness.item(), grad
 
@@ -47,7 +48,7 @@ class Evostrat():
     # use evolution strategies to estimate fitness gradient
 
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
-    mean_fitness = np.mean(fitness)
+    current_fitness = fitness_fn(model)
 
     if self.use_fitness_shaping:
       fitness = self.fitness_shaping(fitness)
@@ -56,17 +57,15 @@ class Evostrat():
       # note: this is only implemented for antithetic sampling
       self.update_adaptive_sigma(fitness, epsilons)
 
-    grad = self.estimate_grad(fitness, epsilons)
-    return mean_fitness, grad
+    grad = self.estimate_grad(fitness, epsilons, current_fitness)
+    return current_fitness, grad
 
   def sample(self, model, x):
     # sample perturbations to the model parameters, using various sampling strategies
 
+    eps = torch.randn(self.popsize, self.num_params).to(self.device)
     if self.use_antithetic:
-      eps = self.sigma * torch.randn(self.popsize//2, self.num_params).to(self.device)
-      eps = torch.cat([eps, -eps], dim=0).to(self.device) # antithetic sampling
-    else:
-      eps = self.sigma * torch.randn(self.popsize, self.num_params).to(self.device)
+      eps = eps[:self.popsize//2]
 
     if self.alpha < 1. and self.prev_grad_est is not None: # guided es
       eps = self.guided_es_sample(eps)
@@ -74,7 +73,10 @@ class Evostrat():
     if self.use_safe_mutation:  # safe mutation with output gradients
       eps = self.safe_mutation(eps, model, x)
 
-    return eps
+    if self.use_antithetic:
+      eps = torch.cat([eps, -eps], dim=0).to(self.device) # antithetic sampling
+
+    return self.sigma * eps
 
   def eval_population(self, model, fitness_fn, x):
     # evaluate the fitness of a "population" of perturbations to model params
@@ -89,14 +91,14 @@ class Evostrat():
     set_params(model, params)
     return fitness, epsilons
 
-  def estimate_grad(self, fitness, epsilons):
+  def estimate_grad(self, fitness, epsilons, current_fitness):
     # given fitness scores of a population, estimate the fitness gradient
 
     if self.use_antithetic:
-      diffs = (fitness[:self.popsize//2] - fitness[self.popsize//2:])
+      diffs = 0.5 * (fitness[:self.popsize//2] - fitness[self.popsize//2:])
       epsilons = epsilons[:self.popsize//2]
     else:
-      diffs = fitness - fitness.mean()
+      diffs = fitness - current_fitness
 
     diffs = self.beta * torch.Tensor(diffs.reshape(-1,1)).to(self.device)
     if not self.use_fitness_shaping:
@@ -109,7 +111,7 @@ class Evostrat():
     # see "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
     #    here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268)
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
-    subspace_sample = self.sigma * np.sqrt(self.num_params) * U
+    subspace_sample = np.sqrt(self.num_params) * U
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
 
   def safe_mutation(self, eps, model, x):
