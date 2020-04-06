@@ -34,7 +34,7 @@ def get_quad_args(as_dict=False):
               'test_every': 10,
               'print_every': 100,
               'device': 'cpu',
-              'seed': 0,}
+              'seed': 1,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 

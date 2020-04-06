@@ -41,7 +41,7 @@ def get_mnist_args(as_dict=False):
               'test_every': 100,
               'print_every': 100,
               'device': 'cuda',
-              'seed': 0,}
+              'seed': 1,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
@@ -110,7 +110,7 @@ def train_mnist(model, data, grad_estimator, args):
 
       # bookkeeping
       results['global_step'] += 1
-      results['train_loss'].append(loss)
+      results['train_loss'].append(loss.item())
       if results['global_step'] % args.test_every == 0:
         test_loss, test_acc = evaluate_model(model, testloader, criterion)
 
@@ -121,11 +121,11 @@ def train_mnist(model, data, grad_estimator, args):
 
         t1 = time.time()
         results['test_loss'].append(test_loss) ; results['test_acc'].append(test_acc)
-        results['angle'].append(angle) ; results['rnorm'].append(rnorm)
+        results['angle'].append(angle.item()) ; results['rnorm'].append(rnorm.item())
         results['dt'].append(t1-t0)
         s_mu, s_std = 0, 0
         if hasattr(grad_estimator, 'sigma'):
-          s_mu, s_std = grad_estimator.sigma.mean(), grad_estimator.sigma.std()
+          s_mu, s_std = grad_estimator.sigma.mean().item(), grad_estimator.sigma.std().item()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
 
       if results['global_step'] % args.print_every == 0:
