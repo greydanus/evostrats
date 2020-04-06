@@ -110,7 +110,7 @@ def train_mnist(model, data, grad_estimator, args):
 
       # bookkeeping
       results['global_step'] += 1
-      results['train_loss'].append(loss.item())
+      results['train_loss'].append(loss)
       if results['global_step'] % args.test_every == 0:
         test_loss, test_acc = evaluate_model(model, testloader, criterion)
 
