@@ -18,7 +18,6 @@ def get_evostrat_args(as_dict=False):
               'use_antithetic': True,
               'use_fitness_shaping': False,
               'use_safe_mutation': False,
-              'sigma_learn_rate': 0,
               'alpha': 1.,                # put this between 0 and 1 to do guided ES
               'beta': 2. ,                # gradient scaling coefficient (from ES paper)
               'device': 'cpu'}
