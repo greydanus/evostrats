@@ -11,20 +11,7 @@ from torch.utils.data import DataLoader
 
 from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
-from .grad_estimators import Backprop
-
-
-def get_evostrat_args(as_dict=False):
-  arg_dict = {'popsize': 100,
-              'sigma': 1e-2,
-              'sigma_learn_rate': 0,
-              'use_antithetic': True,
-              'use_fitness_shaping': True,
-              'use_safe_mutation': False,
-              'alpha': 1.,                # put this between 0 and 1 to do guided ES
-              'beta': 100.,                # gradient scaling coefficient (from ES paper)
-              'device': 'cuda'}
-  return arg_dict if as_dict else ObjectView(arg_dict)
+from .grad_estimators import Backprop, get_es_args
 
 
 # a set of default hyperparameters
@@ -44,7 +31,7 @@ def get_mnist_args(as_dict=False):
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
-# utility for loading MNIST data
+# utility for loading MNIST data. Because you can never train too many MNIST classifiers.
 def get_dataloaders(args):
   transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
@@ -86,8 +73,8 @@ def train_mnist(model, data, grad_estimator, args):
   model.train() ; model.to(args.device)
 
   # set up the optimizer
-  opt_state = get_adam_state() if args.use_adam else get_sgd_state()
-  opt_fn = adam_fn if args.use_adam else sgd_fn
+  optimizer_state = get_adam_state() if args.use_adam else get_sgd_state()
+  optimizer_fn = adam_fn if args.use_adam else sgd_fn
 
   results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step':0, \
              'angle':[], 'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
@@ -96,10 +83,11 @@ def train_mnist(model, data, grad_estimator, args):
     for (inputs, targets) in trainloader:
 
       # update the model
-      fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
-      fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
-      loss = -fitness
-      grad_est, opt_state = opt_fn(grad_est, opt_state)  # this lets us swap out sgd for adam
+      inputs, targets = inputs.to(args.device), targets.to(args.device)  # move data to GPU
+      fitness_fn = get_fitness_fn(criterion, inputs, targets)
+      fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs)
+      loss = -fitness  # semantics are weird
+      grad_est, optimizer_state = optimizer_fn(grad_est, optimizer_state)  # lets us swap out sgd, adam
       new_params = get_params(model) + args.learn_rate * grad_est
       set_params(model, new_params)
 
@@ -113,9 +101,9 @@ def train_mnist(model, data, grad_estimator, args):
       if results['global_step'] % args.test_every == 0:
         test_loss, test_acc = evaluate_model(model, testloader, criterion)
 
-        fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
-        _, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device), is_training=False)
-        _, grad_true = Backprop().step(model, fitness_fn, inputs.to(args.device))
+        fitness_fn = get_fitness_fn(criterion, inputs, targets)
+        _, grad_est = grad_estimator.step(model, fitness_fn, inputs, is_training=False)
+        _, grad_true = Backprop().step(model, fitness_fn, inputs)
         angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 
         t1 = time.time()
@@ -127,6 +115,7 @@ def train_mnist(model, data, grad_estimator, args):
           s_mu, s_std = grad_estimator.sigma.mean().item(), grad_estimator.sigma.std().item()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
 
+      # logging everything because we're trying to do SCIENCE
       if results['global_step'] % args.print_every == 0:
         print(('epoch {}, global_step {}, dt {:.0f}s, train {:.1e}, test {:.1e}, ' + \
               'acc {:.1f}, angle {:.1e}, rel_norm {:.1e}, s_mu {:.1e}, s_std {:.1e}')
