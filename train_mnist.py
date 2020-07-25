@@ -114,6 +114,7 @@ def train_mnist(model, data, grad_estimator, args):
           s_mu, s_std = grad_estimator.sigma.mean().item(), grad_estimator.sigma.std().item()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
 
+      # logging everything because we're trying to do SCIENCE
       if results['global_step'] % args.print_every == 0:
         print(('epoch {}, global_step {}, dt {:.0f}s, train {:.1e}, test {:.1e}, ' + \
               'acc {:.1f}, angle {:.1e}, rel_norm {:.1e}, s_mu {:.1e}, s_std {:.1e}')
