@@ -3,7 +3,6 @@
 
 import torch
 
-# Functional implementations of the Adam and SGD optimizers
 
 def get_adam_state():
   return {'m': None, 'v': None, 'b1': 0.9,
