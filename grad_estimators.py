@@ -6,6 +6,17 @@ import torch
 
 from .utils import get_params, set_params, get_grads, clear_grads, jacobian_of_params
 
+def get_es_args(as_dict=False):
+  arg_dict = {'popsize': 100,
+              'sigma': 1e-2,
+              'sigma_learn_rate': 0,
+              'use_antithetic': True,
+              'use_fitness_shaping': True,
+              'use_safe_mutation': False,
+              'alpha': 1.,                # put this between 0 and 1 to do guided ES
+              'beta': 100.,                # gradient scaling coefficient (from ES paper)
+              'device': 'cuda'}
+  return arg_dict if as_dict else ObjectView(arg_dict)
 
 class Backprop():
   def __init__(self, bias=None):
@@ -45,7 +56,7 @@ class Evostrat():
     self.prev_grad_est = None
 
   def step(self, model, fitness_fn, x, is_training=True):
-    # use evolution strategies to estimate fitness gradient
+    '''Use evolution strategies to estimate fitness gradient.'''
 
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
     current_fitness = fitness_fn(model).item()
@@ -62,8 +73,21 @@ class Evostrat():
       self.prev_grad_est = grad
     return current_fitness, grad
 
+  def eval_population(self, model, fitness_fn, x):
+    '''Evaluate the fitness of a "population" of perturbations to model params.'''
+
+    params = get_params(model)
+    epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
+
+    for i in range(self.popsize):
+      set_params(model, params + epsilons[i])
+      fitness[i] = fitness_fn(model)
+
+    set_params(model, params)
+    return fitness, epsilons
+
   def sample(self, model, x):
-    # sample perturbations to the model parameters, using various sampling strategies
+    '''Sample perturbations to the model parameters, using various sampling strategies.'''
 
     eps = torch.randn(self.popsize, self.num_params).to(self.device)
     if self.use_antithetic:
@@ -80,21 +104,8 @@ class Evostrat():
 
     return self.sigma * eps
 
-  def eval_population(self, model, fitness_fn, x):
-    # evaluate the fitness of a "population" of perturbations to model params
-
-    params = get_params(model)
-    epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
-
-    for i in range(self.popsize):
-      set_params(model, params + epsilons[i])
-      fitness[i] = fitness_fn(model)
-
-    set_params(model, params)
-    return fitness, epsilons
-
   def estimate_grad(self, fitness, epsilons, current_fitness):
-    # given fitness scores of a population, estimate the fitness gradient
+    '''Given fitness scores of a population, estimate the fitness gradient.'''
 
     if self.use_antithetic:
       diffs = 0.5 * (fitness[:self.popsize//2] - fitness[self.popsize//2:])
@@ -109,14 +120,14 @@ class Evostrat():
     return (diffs * epsilons).mean(0)
 
   def guided_es_sample(self, eps):
-    # see "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
-    #    here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268)
+    '''See "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
+    here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268)'''
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
     subspace_sample = np.sqrt(self.num_params) * U
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
 
   def safe_mutation(self, eps, model, x):
-    # see "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)
+    '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563).'''
     J = jacobian_of_params(model, x)
     scale = J.abs().mean(0).reshape(1,-1)
     scale[scale < 0.01] = 0.01 # minimum value is 0.01
@@ -125,14 +136,14 @@ class Evostrat():
     return eps
 
   def fitness_shaping(self, fitness):
-    # see "natural evolution strategies" (arxiv.org/abs/1106.4487)
+    '''See "natural evolution strategies" (arxiv.org/abs/1106.4487).'''
     ranks = np.empty_like(fitness) # next line ranks, then puts in [-.5, 0.5]
     ranks[np.argsort(fitness)] = np.linspace(-.5, 0.5, len(fitness))
     fitness = ranks  # rank-based fitness shaping
     return fitness
 
   def update_adaptive_sigma(self, fitness, epsilons):
-    # see "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX)
+    '''See "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX).'''
     epsilons = epsilons[:self.popsize//2]
     S = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
     est_current_fitness = (fitness[:self.popsize//2] + fitness[self.popsize//2:]) / 2.0

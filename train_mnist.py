@@ -11,20 +11,7 @@ from torch.utils.data import DataLoader
 
 from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
-from .grad_estimators import Backprop
-
-
-def get_evostrat_args(as_dict=False):
-  arg_dict = {'popsize': 100,
-              'sigma': 1e-2,
-              'sigma_learn_rate': 0,
-              'use_antithetic': True,
-              'use_fitness_shaping': True,
-              'use_safe_mutation': False,
-              'alpha': 1.,                # put this between 0 and 1 to do guided ES
-              'beta': 100.,                # gradient scaling coefficient (from ES paper)
-              'device': 'cuda'}
-  return arg_dict if as_dict else ObjectView(arg_dict)
+from .grad_estimators import Backprop, get_es_args
 
 
 # a set of default hyperparameters
@@ -86,7 +73,7 @@ def train_mnist(model, data, grad_estimator, args):
   model.train() ; model.to(args.device)
 
   # set up the optimizer
-  opt_state = get_adam_state() if args.use_adam else get_sgd_state()
+  optimizer_state = get_adam_state() if args.use_adam else get_sgd_state()
   opt_fn = adam_fn if args.use_adam else sgd_fn
 
   results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step':0, \
@@ -99,7 +86,7 @@ def train_mnist(model, data, grad_estimator, args):
       fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
       fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
       loss = -fitness
-      grad_est, opt_state = opt_fn(grad_est, opt_state)  # this lets us swap out sgd for adam
+      grad_est, optimizer_state = optimizer_fn(grad_est, optimizer_state)  # this lets us swap out sgd for adam
       new_params = get_params(model) + args.learn_rate * grad_est
       set_params(model, new_params)
 
