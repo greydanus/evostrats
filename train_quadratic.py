@@ -11,6 +11,22 @@ from .utils import get_params, set_params, angle_between, relative_norm, ObjectV
 from .grad_estimators import Backprop, get_es_args
 from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 
+<<<<<<< HEAD
+=======
+def get_evostrat_args(as_dict=False):
+  arg_dict = {'popsize': 20,
+              'sigma': 3.16e-3,
+              'sigma_learn_rate': 0,
+              'use_antithetic': True,
+              'use_fitness_shaping': False,
+              'use_safe_mutation': False,
+              'sigma_learn_rate': 0,
+              'alpha': 1.,                # put this between 0 and 1 to do guided ES
+              'beta': 2. ,                # gradient scaling coefficient (from ES paper)
+              'device': 'cpu'}
+  return arg_dict if as_dict else ObjectView(arg_dict)
+
+>>>>>>> parent of 04a74ef... Update hyperparams in pivot_states
 def get_quad_args(as_dict=False):
   arg_dict = {'quad_m': 2000,
               'quad_n': 1000,

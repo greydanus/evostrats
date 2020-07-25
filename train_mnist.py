@@ -11,7 +11,25 @@ from torch.utils.data import DataLoader
 
 from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
+<<<<<<< HEAD
 from .grad_estimators import Backprop, get_es_args
+=======
+from .grad_estimators import Backprop
+
+
+def get_evostrat_args(as_dict=False):
+  arg_dict = {'popsize': 100,
+              'sigma': 1e-2,
+              'sigma_learn_rate': 0,
+              'use_antithetic': True,
+              'use_fitness_shaping': True,
+              'use_safe_mutation': False,
+              'sigma_learn_rate': 0,
+              'alpha': 1.,                # put this between 0 and 1 to do guided ES
+              'beta': 100.,                # gradient scaling coefficient (from ES paper)
+              'device': 'cuda'}
+  return arg_dict if as_dict else ObjectView(arg_dict)
+>>>>>>> parent of 04a74ef... Update hyperparams in pivot_states
 
 
 # a set of default hyperparameters

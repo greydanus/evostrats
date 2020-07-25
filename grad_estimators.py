@@ -65,7 +65,7 @@ class Evostrat():
       fitness = self.fitness_shaping(fitness)
 
     if self.sigma_learn_rate > 0 and self.use_antithetic:
-      # note: this is only works for antithetic sampling
+      # note: this only works for antithetic sampling
       self.update_adaptive_sigma(fitness, epsilons)
 
     grad = self.estimate_grad(fitness, epsilons, current_fitness)
@@ -123,7 +123,7 @@ class Evostrat():
         here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268).'''
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)  # our 1D guiding subspace
     U *= np.sqrt(self.num_params)
-    return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
+    return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*U
 
   def safe_mutation(self, eps, model, x):
     '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)'''
