@@ -19,7 +19,7 @@ def get_mnist_args(as_dict=False):
   arg_dict = {'channels': 6,
               'kernel_size': 5,
               'output_size': 10,
-              'epochs': 20,
+              'epochs': 16,
               'batch_size': 100,
               'learn_rate': 1e-1,
               'lr_anneal_coeff': 0.75,
