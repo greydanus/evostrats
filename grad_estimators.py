@@ -57,7 +57,6 @@ class Evostrat():
 
   def step(self, model, fitness_fn, x, is_training=True):
     '''Use evolution strategies to estimate fitness gradient.'''
-
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
     current_fitness = fitness_fn(model).item()
 
@@ -74,8 +73,8 @@ class Evostrat():
     return current_fitness, grad
 
   def eval_population(self, model, fitness_fn, x):
-    '''Evaluate the fitness of a "population" of perturbations to model params.'''
-
+        '''Evaluate the fitness of a "population" of perturbations. If you squint,
+    you can see that evolutionary strategies are glorified guess-and-check.'''
     params = get_params(model)
     epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
 
@@ -127,13 +126,11 @@ class Evostrat():
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
 
   def safe_mutation(self, eps, model, x):
-    '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563).'''
-    J = jacobian_of_params(model, x)
-    scale = J.abs().mean(0).reshape(1,-1)
-    scale[scale < 0.01] = 0.01 # minimum value is 0.01
-    scale[scale > 5.] = 5. # max value is 5
-    eps /= scale
-    return eps
+    '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)'''
+    J = jacobian_of_params(model, x)  # J is of dimension [num_outputs x num_inputs]
+    mutation_scale = J.abs().mean(0).reshape(1,-1)
+    mutation_scale = mutation_scale.clamp(0.01, 5)  # for stability, put in range [0.01, 5]
+    return eps / mutation_scale  # yay, gradients won't blow up as much
 
   def fitness_shaping(self, fitness):
     '''See "natural evolution strategies" (arxiv.org/abs/1106.4487).'''

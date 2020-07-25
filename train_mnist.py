@@ -76,7 +76,7 @@ def train_mnist(model, data, grad_estimator, args):
   optimizer_state = get_adam_state() if args.use_adam else get_sgd_state()
   opt_fn = adam_fn if args.use_adam else sgd_fn
 
-  results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step':0, \
+  results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step': 0, \
              'angle':[], 'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
   t0 = time.time()
   for epoch in range(args.epochs):
