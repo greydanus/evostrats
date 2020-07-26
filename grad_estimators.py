@@ -142,7 +142,9 @@ class Evostrat():
     return fitness
 
   def update_adaptive_sigma(self, fitness, epsilons):
-    # see "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX)
+    '''See "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX). The basic formula
+    is d_sigma = alpha * (r-b) * frac{(theta-mu)^2 - sigma^2}{sigma} where alpha is the
+    learning rate, r is the reward, b is the mean reward (baseline), and theta-mu = epsilon'''
     epsilons = epsilons[:self.popsize//2]
     S = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
     est_current_fitness = (fitness[:self.popsize//2] + fitness[self.popsize//2:]) / 2.0
