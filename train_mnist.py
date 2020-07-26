@@ -9,7 +9,6 @@ import torch.nn as nn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 
-from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
 from .utils import get_params, set_params, angle_between, relative_norm, ObjectView
 from .grad_estimators import Backprop, get_es_args
 
@@ -23,11 +22,11 @@ def get_mnist_args(as_dict=False):
               'batch_size': 100,
               'learn_rate': 1e-1,
               'lr_anneal_coeff': 0.75,
-              'use_adam': False,
+              'use_evolution': True,
               'test_every': 100,
               'print_every': 100,
               'device': 'cuda',
-              'seed': 0,}
+              'seed': 1,}
   return arg_dict if as_dict else ObjectView(arg_dict)
 
 
@@ -72,11 +71,7 @@ def train_mnist(model, data, grad_estimator, args):
   criterion = nn.CrossEntropyLoss()
   model.train() ; model.to(args.device)
 
-  # set up the optimizer
-  optimizer_state = get_adam_state() if args.use_adam else get_sgd_state()
-  optimizer_fn = adam_fn if args.use_adam else sgd_fn
-
-  results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step': 0, \
+  results = {'train_loss':[], 'test_loss':[], 'test_acc':[], 'global_step':0, \
              'angle':[], 'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
   t0 = time.time()
   for epoch in range(args.epochs):
@@ -86,7 +81,6 @@ def train_mnist(model, data, grad_estimator, args):
       fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
       fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
       loss = -fitness
-      grad_est, optimizer_state = optimizer_fn(grad_est, optimizer_state)  # this lets us swap out sgd for adam
       new_params = get_params(model) + args.learn_rate * grad_est
       set_params(model, new_params)
 
@@ -101,7 +95,7 @@ def train_mnist(model, data, grad_estimator, args):
         test_loss, test_acc = evaluate_model(model, testloader, criterion)
 
         fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
-        _, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device), is_training=False)
+        _, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
         _, grad_true = Backprop().step(model, fitness_fn, inputs.to(args.device))
         angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 
@@ -113,9 +107,6 @@ def train_mnist(model, data, grad_estimator, args):
         if hasattr(grad_estimator, 'sigma'):
           s_mu, s_std = grad_estimator.sigma.mean().item(), grad_estimator.sigma.std().item()
         results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
-
-      # logging everything because we're trying to do SCIENCE
-      if results['global_step'] % args.print_every == 0:
         print(('epoch {}, global_step {}, dt {:.0f}s, train {:.1e}, test {:.1e}, ' + \
               'acc {:.1f}, angle {:.1e}, rel_norm {:.1e}, s_mu {:.1e}, s_std {:.1e}')
               .format(epoch, results['global_step'], t1-t0, loss, test_loss, test_acc,
