@@ -140,12 +140,14 @@ class Evostrat():
     return fitness
 
   def update_adaptive_sigma(self, fitness, epsilons):
-    '''See "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX).'''
+    '''See "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX). The basic formula
+    is d_sigma = alpha * (r-b) * frac{(theta-mu)^2 - sigma^2}{sigma} where alpha is the
+    learning rate, r is the reward, b is the mean reward (baseline), and theta-mu = epsilon'''
     epsilons = epsilons[:self.popsize//2]
-    S = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
+    sigma_sensitivity = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
     est_current_fitness = (fitness[:self.popsize//2] + fitness[self.popsize//2:]) / 2.0
-    fitness_err = est_current_fitness - est_current_fitness.mean()
-    fitness_err = torch.Tensor(fitness_err).reshape(-1,1).to(self.device) # [popsize/2, 1]
-    sigma_grad = (fitness_err * S).mean(0, keepdim=True) \
+    fitness_change = est_current_fitness - est_current_fitness.mean()
+    fitness_change = torch.Tensor(fitness_change).reshape(-1,1).to(self.device) # [popsize/2, 1]
+    sigma_grad = (fitness_change * sigma_sensitivity).mean(0, keepdim=True) \
                   / (self.popsize * fitness.std()) # [1, num_params]
     self.sigma += self.sigma_learn_rate * sigma_grad.squeeze()
