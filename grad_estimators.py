@@ -64,7 +64,7 @@ class Evostrat():
       fitness = self.fitness_shaping(fitness)
 
     if self.sigma_learn_rate > 0 and self.use_antithetic:
-      # note: this is only implemented for antithetic sampling
+      # note: this only works for antithetic sampling
       self.update_adaptive_sigma(fitness, epsilons)
 
     grad = self.estimate_grad(fitness, epsilons, current_fitness)
@@ -114,11 +114,13 @@ class Evostrat():
 
     diffs = self.beta * torch.Tensor(diffs.reshape(-1,1)).to(self.device)
     if not self.use_fitness_shaping:
+      print('not fitness shaping')
       diffs /= (self.sigma.mean()**2 * self.num_params) # finite differences denominator
 
     return (diffs * epsilons).mean(0)
 
   def guided_es_sample(self, eps):
+    print('guided es')
     '''See "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
     here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268)'''
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
@@ -126,6 +128,7 @@ class Evostrat():
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
 
   def safe_mutation(self, eps, model, x):
+    print('safe mutation')
     '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)'''
     J = jacobian_of_params(model, x)  # J is of dimension [num_outputs x num_inputs]
     mutation_scale = J.abs().mean(0).reshape(1,-1)
@@ -140,6 +143,7 @@ class Evostrat():
     return fitness
 
   def update_adaptive_sigma(self, fitness, epsilons):
+    print('update adaptive sigma')
     '''See "parameter exploring policy gradients" (paper: bit.ly/3dBw3RX). The basic formula
     is d_sigma = alpha * (r-b) * frac{(theta-mu)^2 - sigma^2}{sigma} where alpha is the
     learning rate, r is the reward, b is the mean reward (baseline), and theta-mu = epsilon'''
