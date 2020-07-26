@@ -73,7 +73,7 @@ class Evostrat():
     return current_fitness, grad
 
   def eval_population(self, model, fitness_fn, x):
-        '''Evaluate the fitness of a "population" of perturbations. If you squint,
+    '''Evaluate the fitness of a "population" of perturbations. If you squint,
     you can see that evolutionary strategies are glorified guess-and-check.'''
     params = get_params(model)
     epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
