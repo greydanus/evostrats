@@ -84,7 +84,7 @@ def train_mnist(model, data, grad_estimator, args):
 
       # update the model
       fitness_fn = get_fitness_fn(criterion, inputs.to(args.device), targets.to(args.device))
-      fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device))
+      fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs.to(args.device), is_training=True)
       loss = -fitness
       grad_est, optimizer_state = optimizer_fn(grad_est, optimizer_state)  # lets us swap out sgd, adam
       new_params = get_params(model) + args.learn_rate * grad_est
