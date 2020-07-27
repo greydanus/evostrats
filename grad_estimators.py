@@ -57,7 +57,7 @@ class Evostrat():
     self.device = device
     self.prev_grad_est = None
 
-  def step(self, model, fitness_fn, x, is_training=True):
+  def step(self, model, fitness_fn, x, is_training=False):
     '''Use evolution strategies to estimate fitness gradient'''
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
     current_fitness = fitness_fn(model).item() #np.mean(fitness)
