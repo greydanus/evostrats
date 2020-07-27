@@ -89,11 +89,9 @@ class Evostrat():
 
   def sample(self, model, x):
     '''Sample perturbations to the model parameters, using various sampling strategies.'''
+    eps = torch.randn(self.popsize, self.num_params).to(self.device)
     if self.use_antithetic:
-      eps = self.sigma * torch.randn(self.popsize//2, self.num_params).to(self.device)
-      eps = torch.cat([eps, -eps], dim=0).to(self.device) # antithetic sampling
-    else:
-      eps = self.sigma * torch.randn(self.popsize, self.num_params).to(self.device)
+      eps = eps[:self.popsize//2]
 
     if self.alpha < 1. and self.prev_grad_est is not None: # guided es
       eps = self.guided_es_sample(eps)
@@ -101,7 +99,10 @@ class Evostrat():
     if self.use_safe_mutation:  # safe mutation with output gradients
       eps = self.safe_mutation(eps, model, x)
 
-    return eps
+    if self.use_antithetic:
+      eps = torch.cat([eps, -eps], dim=0).to(self.device)  # antithetic sampling
+
+    return self.sigma * eps
 
   def estimate_grad(self, fitness, epsilons):
     '''Given fitness scores of a population, estimate the fitness gradient.'''
