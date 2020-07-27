@@ -77,7 +77,6 @@ class Evostrat():
   def eval_population(self, model, fitness_fn, x):
     '''Evaluate the fitness of a "population" of perturbations. If you squint,
     you can see that evolutionary strategies are glorified guess-and-check.'''
-
     params = get_params(model)  # TODO: parallelize this loop
     epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
 
@@ -116,29 +115,26 @@ class Evostrat():
     if not self.use_fitness_shaping:
       diffs /= (self.sigma.mean()**2 * self.num_params) # finite differences denominator
 
-    self.prev_grad_est = grad = (diffs * epsilons).mean(0)
-    return grad
+    return (diffs * epsilons).mean(0)
 
   def guided_es_sample(self, eps):
-    # see "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
-    #    here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268)
+    '''See "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
+        here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268).'''
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
-    subspace_sample = self.sigma * np.sqrt(self.num_params) * U
-    return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*subspace_sample
+    U *= self.sigma * np.sqrt(self.num_params)
+    return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*U
 
   def safe_mutation(self, eps, model, x):
-    # see "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)
+    '''See "safe mutation via output gradients..." (arxiv.org/abs/1712.06563)'''
     J = jacobian_of_params(model, x)
-    scale = J.abs().mean(0).reshape(1,-1)
-    scale[scale < 0.01] = 0.01 # minimum value is 0.01
-    scale[scale > 5.] = 5. # max value is 5
-    eps /= scale
-    return eps
+    mutation_scale = J.abs().mean(0).reshape(1,-1)
+    mutation_scale = mutation_scale.clamp(0.01, 5)  # for stability, put in range [0.01, 5]
+    return eps / mutation_scale  # yay, gradients won't blow up as much
 
   def fitness_shaping(self, fitness):
     # see "natural evolution strategies" (arxiv.org/abs/1106.4487)
-    ranks = np.empty_like(fitness) # next line ranks, then puts in [-.5, 0.5]
-    ranks[np.argsort(fitness)] = np.linspace(-.5, 0.5, len(fitness))
+    ranks = np.empty_like(fitness)
+    ranks[np.argsort(fitness)] = np.linspace(-.5, 0.5, len(fitness))  # rank & put in [-.5, 0.5]
     fitness = ranks  # rank-based fitness shaping
     return fitness
 
@@ -147,10 +143,10 @@ class Evostrat():
     is d_sigma = alpha * (r-b) * frac{(theta-mu)^2 - sigma^2}{sigma} where alpha is the
     learning rate, r is the reward, b is the mean reward (baseline), and theta-mu = epsilon'''
     epsilons = epsilons[:self.popsize//2]
-    S = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
+    sigma_sensitivity = (epsilons.pow(2) - self.sigma.pow(2)) / self.sigma  # [popsize/2, num_params]
     est_current_fitness = (fitness[:self.popsize//2] + fitness[self.popsize//2:]) / 2.0
-    fitness_err = est_current_fitness - est_current_fitness.mean()
-    fitness_err = torch.Tensor(fitness_err).reshape(-1,1).to(self.device) # [popsize/2, 1]
-    sigma_grad = (fitness_err * S).mean(0, keepdim=True) \
-                  / (self.popsize * fitness.std()) # [1, num_params]
+    fitness_change = est_current_fitness - est_current_fitness.mean()
+    fitness_change = torch.Tensor(fitness_change).reshape(-1,1).to(self.device) # [popsize/2, 1]
+    sigma_grad = (fitness_change * sigma_sensitivity).mean(0, keepdim=True)
+    sigma_grad /= self.popsize * fitness.std() # [1, num_params]
     self.sigma += self.sigma_learn_rate * sigma_grad.squeeze()
