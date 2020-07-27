@@ -122,7 +122,7 @@ class Evostrat():
     '''See "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
         here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268).'''
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
-    U *= self.sigma * np.sqrt(self.num_params)
+    U *= np.sqrt(self.num_params)
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*U
 
   def safe_mutation(self, eps, model, x):

@@ -2,8 +2,10 @@
 # Sam Greydanus
 
 import numpy as np
-import pickle
 import torch
+
+# Some people are haters, eg stackoverflow.com/questions/21752259/python-why-pickle
+import pickle  # but I will import and cherish you nonetheless <3
 
 
 def to_pickle(thing, path): # save something
@@ -21,12 +23,11 @@ class ObjectView(object):
     def __init__(self, d): self.__dict__ = d
 
 
+def get_params(model):
+  return torch.cat([p.reshape(-1) for p in model.parameters()])
 
 def count_params(model):
   return len(get_params(model))
-
-def get_params(model):
-  return torch.cat([p.reshape(-1) for p in model.parameters()])
 
 def set_params(model, pv):
   pointer = 0
