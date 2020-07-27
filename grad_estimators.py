@@ -21,13 +21,14 @@ def get_es_args(as_dict=False):
 
 
 class Backprop():
-  def __init__(self):
-    pass
+  def __init__(self, bias=None):
+    self.bias = bias   # Don't set this to a small value accidentally. You will have a very evil bug :D
 
   def step(self, model, fitness_fn, x):
     fitness = fitness_fn(model)
     fitness.backward()
     grad = get_grads(model)
+    grad = grad - self.bias * grad.norm() if self.bias is not None else grad
     clear_grads(model)
     return fitness.item(), grad
 
@@ -57,10 +58,9 @@ class Evostrat():
     self.prev_grad_est = None
 
   def step(self, model, fitness_fn, x):
-    # use evolution strategies to estimate fitness gradient
-
+    '''Use evolution strategies to estimate fitness gradient'''
     fitness, epsilons = self.eval_population(model, fitness_fn, x)
-    mean_fitness = np.mean(fitness)
+    current_fitness = fitness_fn(model).item() #np.mean(fitness)
 
     if self.use_fitness_shaping:
       fitness = self.fitness_shaping(fitness)
@@ -70,12 +70,15 @@ class Evostrat():
       self.update_adaptive_sigma(fitness, epsilons)
 
     grad = self.estimate_grad(fitness, epsilons)
-    return mean_fitness, grad
+    if is_training:
+      self.prev_grad_est = grad
+    return current_fitness, grad
 
   def eval_population(self, model, fitness_fn, x):
-    # evaluate the fitness of a "population" of perturbations to model params
+    '''Evaluate the fitness of a "population" of perturbations. If you squint,
+    you can see that evolutionary strategies are glorified guess-and-check.'''
 
-    params = get_params(model)
+    params = get_params(model)  # TODO: parallelize this loop
     epsilons, fitness = self.sample(model, x), np.zeros(self.popsize)
 
     for i in range(self.popsize):
@@ -86,8 +89,7 @@ class Evostrat():
     return fitness, epsilons
 
   def sample(self, model, x):
-    # sample perturbations to the model parameters, using various sampling strategies
-
+    '''Sample perturbations to the model parameters, using various sampling strategies.'''
     if self.use_antithetic:
       eps = self.sigma * torch.randn(self.popsize//2, self.num_params).to(self.device)
       eps = torch.cat([eps, -eps], dim=0).to(self.device) # antithetic sampling
@@ -103,10 +105,9 @@ class Evostrat():
     return eps
 
   def estimate_grad(self, fitness, epsilons):
-    # given fitness scores of a population, estimate the fitness gradient
-
+    '''Given fitness scores of a population, estimate the fitness gradient.'''
     if self.use_antithetic:
-      diffs = (fitness[:self.popsize//2] - fitness[self.popsize//2:])
+      diffs = .5 * (fitness[:self.popsize//2] - fitness[self.popsize//2:])
       epsilons = epsilons[:self.popsize//2]
     else:
       diffs = fitness - fitness.mean()
