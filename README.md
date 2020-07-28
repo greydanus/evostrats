@@ -1,8 +1,6 @@
-Evostrats: estimating gradients with evolution strategies
-=======
-Sam Greydanus | 2020
+![evostrats.png](static/evostrats.png)
 
-![finches.png](static/finches.png)
+Sam Greydanus | 2020
 
 Summary
 --------
