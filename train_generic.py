@@ -49,7 +49,7 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
     if step % args.test_every == 0:
       t1 = time.time()
       if evaluate_fn is not None:
-        test_loss, test_acc = evaluate_model(model, dataloader.testloader)
+        test_loss, test_acc = evaluate_fn(model, dataloader.testloader)
 
       _, grad_est = grad_estimator.step(model, fitness_fn, inputs)
       _, grad_true = Backprop().step(model, fitness_fn, inputs)
