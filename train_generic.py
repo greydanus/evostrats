@@ -56,11 +56,11 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
       angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 
       if hasattr(grad_estimator, 'sigma'):
-        s_mu, s_std = grad_estimator.sigma.mean(), grad_estimator.sigma.std()
+        s_mu, s_std = grad_estimator.sigma.mean().item(), grad_estimator.sigma.std().item()
 
       results['dt'].append(t1-t0)
       results['test_loss'].append(test_loss) ; results['test_acc'].append(test_acc)
-      results['angle'].append(angle) ; results['rnorm'].append(rnorm)
+      results['angle'].append(angle.item()) ; results['rnorm'].append(rnorm.item())
       results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
 
     if step % args.print_every == 0:
