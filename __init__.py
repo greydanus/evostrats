@@ -4,4 +4,3 @@
 from .utils import *
 from .grad_estimators import Backprop, Evostrat, get_es_args
 from .train_generic import train_generic
-from .models import MNISTModel, QuadraticModel

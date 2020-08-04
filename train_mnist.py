@@ -10,6 +10,7 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader
 
 from .utils import ObjectView
+from .models import MNISTModel
 
 
 # a set of default hyperparameters

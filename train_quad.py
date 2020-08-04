@@ -5,7 +5,7 @@ import numpy as np
 import time
 import torch
 
-from .optimizers import get_sgd_state, get_adam_state, sgd_fn, adam_fn
+from .models import QuadraticModel
 from .utils import ObjectView
 
 
