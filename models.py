@@ -9,6 +9,14 @@ import torch.nn.functional as F
 
 from .utils import count_params
 
+class QuadraticModel(torch.nn.Module):
+  def __init__(self, x):
+    super(QuadraticModel, self).__init__()
+    self.x = torch.nn.Parameter(x)
+
+  def forward(self, A):
+    return A @ self.x
+
 class SimpleCNN(torch.nn.Module):
   def __init__(self, channels=7, kernel_size=5, output_size=10):
     super(SimpleCNN, self).__init__()

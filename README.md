@@ -8,7 +8,7 @@ Quite a few functions are hard to optimize because they have many local minima. 
 
 ![surface.png](static/surface.png)
 
-In situations like this one, it helps to smooth the loss surface, and thus the gradients, before optimization. Doing this points us towards regions of parameters space _where the overall density of good solutions_ is higher. Once we get to these regions (eg. the upper right corner of the plots above), we can anneal the smoothing factor and zero in on a particularly good solution.
+In situations like this one, it helps to smooth the loss surface, and thus the gradients, before optimization. Doing this points us towards regions of parameter space _where the overall density of good solutions_ is higher. Once we get to these regions (eg. the upper right corner of the plots above), we can anneal the smoothing factor and zero in on a particularly good solution.
 
 Any amount of noise involved in an optimization process helps to smooth the loss surface. Stochastic gradient descent is a good example: empirical results suggest that smaller batch sizes (more stochastic gradients) can actually improve generalization in neural networks. But I agree with Metz et al. 2019 when they claim that this isn't enough to stabilize metalearning. A more extreme alternative is to use evolution strategies as a stochastic, unbiased gradient estimator ("mutation rate" ~ "smoothness factor"). Many people would say that this is crazy...
 
