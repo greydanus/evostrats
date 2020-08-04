@@ -24,7 +24,7 @@ class Backprop():
   def __init__(self, bias=None):
     self.bias = bias   # Don't set this to a small value accidentally. You will have a very evil bug :D
 
-  def step(self, model, fitness_fn, x):
+  def step(self, model, fitness_fn, x, is_training=False):
     fitness = fitness_fn(model)
     fitness.backward()
     grad = get_grads(model)
