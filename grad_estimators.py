@@ -121,7 +121,6 @@ class Evostrat():
   def guided_es_sample(self, eps):
     '''See "guided evolutionary strategies" (arxiv.org/abs/1806.10230)
         here we use a stale gradient to guide search, as in (arxiv.org/abs/1910.05268).'''
-    print("ji")
     U = (self.prev_grad_est / self.prev_grad_est.norm()).reshape(1,-1)
     U *= np.sqrt(self.num_params)
     return np.sqrt(self.alpha)*eps + np.sqrt(1-self.alpha)*U
