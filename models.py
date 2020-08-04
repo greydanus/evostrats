@@ -9,6 +9,16 @@ import torch.nn.functional as F
 
 from .utils import count_params
 
+class RastriginModel(torch.nn.Module):
+  def __init__(self, x):
+    super(RastriginModel, self).__init__()
+    self.x = torch.nn.Parameter(x)
+    print("Initialized RastriginModel with {} parameters".format(count_params(self)))
+
+  def forward(self, inputs):
+    return self.x
+
+
 class QuadraticModel(torch.nn.Module):
   def __init__(self, x):
     super(QuadraticModel, self).__init__()
@@ -17,6 +27,7 @@ class QuadraticModel(torch.nn.Module):
 
   def forward(self, A):
     return A @ self.x
+
 
 class MNISTModel(torch.nn.Module):
   def __init__(self, channels=7, kernel_size=5, output_size=10):
