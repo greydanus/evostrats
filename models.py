@@ -17,9 +17,9 @@ class QuadraticModel(torch.nn.Module):
   def forward(self, A):
     return A @ self.x
 
-class SimpleCNN(torch.nn.Module):
+class MNISTModel(torch.nn.Module):
   def __init__(self, channels=7, kernel_size=5, output_size=10):
-    super(SimpleCNN, self).__init__()
+    super(MNISTModel, self).__init__()
     self.conv1 = nn.Conv2d(1, channels, kernel_size, padding=2)
     self.conv2 = nn.Conv2d(channels, channels, kernel_size, padding=2)
     self.linear_input_size = H = channels*7*7
