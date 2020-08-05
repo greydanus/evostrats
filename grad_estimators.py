@@ -30,7 +30,8 @@ class Backprop():
     grad = get_grads(model)
     grad = grad - self.bias * grad.norm() if self.bias is not None else grad
     clear_grads(model)
-    return fitness.item(), grad
+    info = {'states': get_params(model).detach().cpu().numpy()}
+    return fitness.item(), grad, info
 
 
 class Evostrat():
@@ -72,7 +73,8 @@ class Evostrat():
     grad = self.estimate_grad(fitness, epsilons)
     if is_training:
       self.prev_grad_est = grad
-    return current_fitness, grad
+    info = {'states': (get_params(model) + epsilons).detach().cpu().numpy()}
+    return current_fitness, grad, info
 
   def eval_population(self, model, fitness_fn, x):
     '''Evaluate the fitness of a "population" of perturbations. If you squint,

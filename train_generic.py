@@ -24,7 +24,7 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
   optimizer_fn = adam_fn if args.use_adam else sgd_fn
 
   results = {'train_loss':[], 'test_loss':[], 'test_acc': [], 'angle':[], \
-             'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[]}
+             'rnorm':[], 'sigma_mean':[], 'sigma_std':[], 'dt':[], 'param_hist': []}
   (s_mu, s_std, test_loss, test_acc) = (0, 0, 0, 0)
   t0 = time.time()
   for step in range(args.total_steps):
