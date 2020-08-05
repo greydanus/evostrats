@@ -51,8 +51,8 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
       if evaluate_fn is not None:
         test_loss, test_acc = evaluate_fn(model, dataloader.testloader)
 
-      _, grad_est = grad_estimator.step(model, fitness_fn, inputs)
-      _, grad_true = Backprop().step(model, fitness_fn, inputs)
+      _, grad_est, info = grad_estimator.step(model, fitness_fn, inputs)
+      _, grad_true, _ = Backprop().step(model, fitness_fn, inputs)
       angle, rnorm = angle_between(grad_est, grad_true), relative_norm(grad_est, grad_true)
 
       if hasattr(grad_estimator, 'sigma'):
