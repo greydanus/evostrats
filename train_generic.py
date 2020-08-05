@@ -33,7 +33,7 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
     inputs, targets = dataloader.step()
     (inputs, targets) = (inputs.to(args.device), targets.to(args.device))
     fitness_fn = fitness_fn_getter(model, inputs, targets)
-    fitness, grad_est = grad_estimator.step(model, fitness_fn, inputs, is_training=True)
+    fitness, grad_est, info = grad_estimator.step(model, fitness_fn, inputs, is_training=True)
     loss = -fitness ; results['train_loss'].append(loss)
     
     # update trainable parameters
@@ -62,6 +62,7 @@ def train_generic(args, model, grad_estimator, dataloader, fitness_fn_getter, ev
       results['test_loss'].append(test_loss) ; results['test_acc'].append(test_acc)
       results['angle'].append(angle.item()) ; results['rnorm'].append(rnorm.item())
       results['sigma_mean'].append(s_mu) ; results['sigma_mean'].append(s_std)
+      results['param_hist'].append(info['params'])
 
     if step % args.print_every == 0:
       print(('step {}, dt {:.0f}s, train {:.2e}, test {:.1e}, acc {:.1f}, ' + \

@@ -30,7 +30,7 @@ class Backprop():
     grad = get_grads(model)
     grad = grad - self.bias * grad.norm() if self.bias is not None else grad
     clear_grads(model)
-    info = {'states': get_params(model).detach().cpu().numpy()}
+    info = {'params': get_params(model).detach().cpu().numpy()}
     return fitness.item(), grad, info
 
 
@@ -73,7 +73,7 @@ class Evostrat():
     grad = self.estimate_grad(fitness, epsilons)
     if is_training:
       self.prev_grad_est = grad
-    info = {'states': (get_params(model) + epsilons).detach().cpu().numpy()}
+    info = {'params': (get_params(model) + epsilons).detach().cpu().numpy()}
     return current_fitness, grad, info
 
   def eval_population(self, model, fitness_fn, x):
